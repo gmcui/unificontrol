@@ -26,6 +26,7 @@ import ssl
 import tempfile
 import atexit
 import os
+import re
 
 # Dependencies
 import requests
@@ -69,11 +70,12 @@ class UnifiClient(metaclass=MetaNameFixer):
             Pass ``None`` to use regular certificate verification or the
             constant ``FETCH_CERT`` to use the current certificate of the server
             and pin that cert for future accesses.
+        controller (str): 'default' or 'UDM_PRO'
     """
 
     def __init__(self, host="localhost", port=8443,
                  username="admin", password=None, site="default",
-                 cert=FETCH_CERT):
+                 cert=FETCH_CERT, controller="default"):
         self._host = host
         self._port = port
         self._user = username
@@ -81,6 +83,7 @@ class UnifiClient(metaclass=MetaNameFixer):
         self._site = site
         self._session = requests.session()
         self._exit_handler = None
+        self._controller = controller
 
         if cert == FETCH_CERT:
             cert = ssl.get_server_certificate((host, port))
@@ -90,6 +93,14 @@ class UnifiClient(metaclass=MetaNameFixer):
             self._session.mount("https://{}:{}".format(host, port), adaptor)
 
     def _execute(self, url, method, rest_dict, need_login=True):
+        # UDM Pro API endpoints are different
+        # See: https://ubntwiki.com/products/software/unifi-controller/api
+        if self._controller == 'UDM_PRO':
+            if re.search(r'/api/login$', url):
+                url = re.sub(r'/api/login', r'/api/auth/login', url)
+            elif not re.match(r'/proxy/network/api', url):
+                url = re.sub(r'/api', r'/proxy/network/api', url)
+
         request = requests.Request(method, url, json=rest_dict)
         ses = self._session
 
