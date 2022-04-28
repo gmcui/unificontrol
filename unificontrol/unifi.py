@@ -121,7 +121,7 @@ class UnifiClient(metaclass=MetaNameFixer):
             response = resp.json()
             if 'meta' in response and response['meta']['rc'] != 'ok':
                 raise UnifiAPIError(response['meta']['msg'])
-            return response['data']
+            return response.get('data') or []
         else:
             raise UnifiTransportError("{}: {}".format(resp.status_code, resp.reason))
 
