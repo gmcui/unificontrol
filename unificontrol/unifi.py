@@ -105,6 +105,8 @@ class UnifiClient(metaclass=MetaNameFixer):
         ses = self._session
 
         resp = ses.send(ses.prepare_request(request))
+        if resp.headers.get('X-CSRF-Token'):
+            ses.headers.update({'X-CSRF-Token':resp.headers['X-CSRF-Token']})
 
         # If we fail with unauthorised and need login then retry just once
         if resp.status_code == 401 and need_login:
